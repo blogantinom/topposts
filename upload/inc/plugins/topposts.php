@@ -56,7 +56,7 @@ function topposts_info()
     'author'    =>  'Blog Anti-NOM',
     'authorsite'  =>  'mailto:blogantinom@gmail.com',
     'version'   =>  '1.0',
-    'guid'      =>  '',
+    'guid'      =>  '93cbf2d9f08ea161a3697ddb3b2225c2',
     'compatibility' =>  '14*,16*'
     );
 }
