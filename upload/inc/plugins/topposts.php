@@ -566,7 +566,7 @@ function tp_GetNewestPosts($NumOfRows, $days, $title)
   }
   $g33kthanks=thankyouplugin_is_installed();
   $sql="
-    SELECT t.subject,t.username,t.uid,t.tid,t.fid,t.lastpost,t.lastposter,t.lastposteruid,t.replies, t.totalratings, ".($g33kthanks ? "tyl_tnumtyls" : "").", t.views,tr.uid AS truid,tr.dateline,f.name ,
+    SELECT t.subject,t.username,t.uid,t.tid,t.fid,t.lastpost,t.lastposter,t.lastposteruid,t.replies, t.totalratings, ".($g33kthanks ? "tyl_tnumtyls" : "").", t.views,tr.uid AS truid,f.name ,
     TRUNCATE(t.totalratings/t.numratings*2+t.numratings/8".($g33kthanks ? "+tyl_tnumtyls" : "")."+t.replies+t.views/".$days.",2) ranking
     FROM ".TABLE_PREFIX."threads t 
     LEFT JOIN ".TABLE_PREFIX."forums f ON (f.fid = t.fid) 
