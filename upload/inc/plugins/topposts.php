@@ -55,7 +55,7 @@ function topposts_info()
     'website'   =>  'http://community.mybb.com/thread-139455.html',
     'author'    =>  'Blog Anti-NOM',
     'authorsite'  =>  'mailto:blogantinom@gmail.com',
-    'version'   =>  '0.2',
+    'version'   =>  '1.0',
     'guid'      =>  '',
     'compatibility' =>  '14*,16*'
     );
