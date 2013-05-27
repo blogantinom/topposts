@@ -546,7 +546,7 @@ function topposts_run_pre_output($contents)
 
   $numofrows = $mybb->settings['tp_num_rows'];
   $topposts_tbl = "";
-  echo("tp_MakeTable");
+  
   $topposts_tbl = tp_MakeTable();
 
 
