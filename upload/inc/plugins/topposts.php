@@ -35,8 +35,6 @@ $plugins->add_hook('pre_output_page', 'topposts_run_pre_output');
 $plugins->add_hook('index_start', 'topposts_run_index');
 $plugins->add_hook('portal_start', 'topposts_run_portal');
 
-
-
 function topposts_info()
 {
   global $mybb, $db;
@@ -295,7 +293,27 @@ function topposts_install()
     "disporder"   => '41',
     "gid"     => intval($gid),
   );
-
+  
+    $ps[]= array(
+    "name"      => "tp_thumbnail_height",
+    "title"     => "Height of thumbnail",
+    "description" => "The height of the thumbnail generated)",
+    "optionscode" => "text",
+    "value"     => '111',
+    "disporder"   => '42',
+    "gid"     => intval($gid),
+  );
+    
+    $ps[]= array(
+    "name"      => "tp_thumbnail_width",
+    "title"     => "Width of thumbnail",
+    "description" => "The width of the thumbnail generated)",
+    "optionscode" => "text",
+    "value"     => '160',
+    "disporder"   => '43',
+    "gid"     => intval($gid),
+  );  
+  
   $ps[]= array(
     "name"      => "tp_date_format",
     "title"     => "Date and Time format",
@@ -392,15 +410,17 @@ function topposts_install()
 
 function topposts_uninstall()
 {
-
   global $db;
+  topposts_deactivate();
   $db->delete_query('tasks', 'file = \'topposts\'');
   $db->query("DELETE FROM ".TABLE_PREFIX."templates WHERE title='topposts'");
   $db->query("DELETE FROM ".TABLE_PREFIX."templates WHERE title LIKE 'topposts_%'");
 
-  $db->delete_query("settings","name IN ('tp_active','tp_ignoreforums','tp_index','tp_portal','tp_position','tp_format_name','tp_subject_length','tp_num_rows','tp_date_format','tp_date_format_ty','tp_newest_posts_cells','tp_hidefrombots','tp_global_tag')");
+  $db->delete_query("settings","name IN ('tp_active','tp_ignoreforums','tp_index','tp_portal','tp_position','tp_format_name','tp_subject_length','tp_num_rows','tp_date_format','tp_date_format_ty','tp_newest_posts_cells','tp_hidefrombots','tp_global_tag','tp_thumbnail_height','tp_thumbnail_width')");
   $db->delete_query("settinggroups","name='topposts'");
 
+  
+    
   rebuild_settings();
   echo('uninstall finish');
 }
@@ -577,7 +597,7 @@ function tp_GetNewestPosts($NumOfRows, $days, $title)
     {
       case "Newest_posts" :
         $active_cells['Newest_posts']=1;
-        $newestposts_cols_name .= "<td>".$lang->topposts_topic."</td>";
+        $newestposts_cols_name .= "<td >".$lang->topposts_topic."</td>";
         $cell_order[$colspan]='Newest_posts';
         break;
       case "Date" :
@@ -608,7 +628,7 @@ function tp_GetNewestPosts($NumOfRows, $days, $title)
 
   $loop_counter = 0;
 
-
+  //caches the DB results in an array
   $results = array();
   while($newest_threads = $db->fetch_array($query))
   {
@@ -678,8 +698,9 @@ function tp_GetNewestPosts($NumOfRows, $days, $title)
       {
         //most of the presentation html is concentrated on this first case below.
         //The other cases are not used. Planning in doing a refactoring here.
+  
         case "Newest_posts" :
-          $newestposts_cols .= "<td width='160' height='111' valign='bottom'  style=\"background: url(".$image_url.")\" onmouseout=\"fadeout('thread".$tid.$days."');\" onmouseover=\"fadein('thread".$tid.$days."');\">  <span  >".
+          $newestposts_cols .= "<td width='".$mybb->settings['tp_thumbnail_width']."' height='".$mybb->settings['tp_thumbnail_height']."' border='1' valign='bottom'  style=\"background: url(".$image_url.")\" onmouseout=\"fadeout('thread".$tid.$days."');\" onmouseover=\"fadein('thread".$tid.$days."');\">  <span  >".
           "<span id='thread".$tid.$days."' style='display:none;width: 100%;vertical-align:top;max-height: 30px;background:rgba(255,255,255,0.60); font-color: red;font-weight:bold;font-size: 0.8em;float: right;bottom:0;left:0; a, a:hover, a:active, a:visited { color: white; }'>"
           ."<img src=\"".$mybb->settings['bburl']."/images/topposts/Chat-icon.png\">".$replies." <img src=\"".$mybb->settings['bburl']."/images/topposts/eye.png\"/>".$views.($g33kthanks ? " "." <img src=\"".$mybb->settings['bburl']."/images/topposts/Heart-icon.png\"/>".$tyl_tnumtyls : "")." <img src=\"".$mybb->settings['bburl']."/images/topposts/star.gif\"/>".$ratings."</span>".
              "<span onmouseover=\"document.getElementById('thread".$tid."').style.display='block'\" style='display:block;width: 100%;vertical-align:middle;min-height: 30px;background:rgba(0,0,0,0.60); font-color: red;font-weight:bold;font-size: 0.8em;float: right;bottom:0;left:0; a, a:hover, a:active, a:visited { color: white; }'>".
@@ -946,6 +967,9 @@ function tp_GetThreadImageUrl($tid){
 
 
 function tp_createThumb($source_url,$target_file, $thumb_file_name){
+	
+   global $mybb;
+	
   require_once MYBB_ROOT.'inc/plugins/topposts/phpthumb.class.php';
   require_once MYBB_ROOT.'inc/plugins/topposts/phpThumb.config.php';
 
@@ -975,8 +999,12 @@ function tp_createThumb($source_url,$target_file, $thumb_file_name){
   $phpThumb->setParameter('config_output_format', 'jpeg');
   $phpThumb->setParameter('zc', "C");
   $phpThumb->setParameter('config_allow_src_above_docroot', true);
-  $phpThumb->setParameter('w', 160);
-  $phpThumb->setParameter('h', 111);
+  
+
+  
+  
+  $phpThumb->setParameter('w', $mybb->settings['tp_thumbnail_width']);
+  $phpThumb->setParameter('h', $mybb->settings['tp_thumbnail_height']);
   $phpThumb->setParameter('config_cache_directory','./topposts/temp/');
   $phpThumb->setParameter('config_temp_directory', './topposts/temp/');
   $phpThumb->setParameter('config_cache_disable_warning', true);
