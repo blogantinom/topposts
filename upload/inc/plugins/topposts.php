@@ -52,7 +52,7 @@ function topposts_info()
     'name'      =>  'TopPosts',
     'title'     =>  'TopPosts',
     'description' =>  'Top Posts for MyBB. ' . $settings_link,
-    'website'   =>  'http://community.mybb.com/newreply.php?tid=139455',
+    'website'   =>  'http://community.mybb.com/thread-139455.html',
     'author'    =>  'Blog Anti-NOM',
     'authorsite'  =>  'mailto:blogantinom@gmail.com',
     'version'   =>  '0.2',
@@ -205,7 +205,7 @@ function topposts_install()
 
   $tp_group = array(
     "name"      => "topposts",
-    "title"     => "topposts",
+    "title"     => "TopPosts Plugin Configuration",
     "description" => "Top Posts for MyBB.",
     "disporder"   => "1",
     "isdefault"   => "1",
@@ -310,7 +310,7 @@ function topposts_install()
     "description" => "The width of the thumbnail generated)",
     "optionscode" => "text",
     "value"     => '160',
-    "disporder"   => '43',
+    "disporder"   => '42',
     "gid"     => intval($gid),
   );  
   
@@ -569,7 +569,6 @@ function tp_GetNewestPosts($NumOfRows, $days, $title)
     SELECT t.subject,t.username,t.uid,t.tid,t.fid,t.lastpost,t.lastposter,t.lastposteruid,t.replies, t.totalratings, ".($g33kthanks ? "tyl_tnumtyls" : "").", t.views,tr.uid AS truid,tr.dateline,f.name ,
     TRUNCATE(t.totalratings/t.numratings*2+t.numratings/8".($g33kthanks ? "+tyl_tnumtyls" : "")."+t.replies+t.views/".$days.",2) ranking
     FROM ".TABLE_PREFIX."threads t 
-    LEFT JOIN ".TABLE_PREFIX."threadsread tr ON (tr.tid=t.tid AND tr.uid='".$mybb->user['uid']."') 
     LEFT JOIN ".TABLE_PREFIX."forums f ON (f.fid = t.fid) 
     WHERE t.visible='1' 
     ".tp_GetUnviewable("t")."
@@ -700,7 +699,7 @@ function tp_GetNewestPosts($NumOfRows, $days, $title)
         //The other cases are not used. Planning in doing a refactoring here.
   
         case "Newest_posts" :
-          $newestposts_cols .= "<td width='".$mybb->settings['tp_thumbnail_width']."' height='".$mybb->settings['tp_thumbnail_height']."' border='1' valign='bottom'  style=\"background: url(".$image_url.")\" onmouseout=\"fadeout('thread".$tid.$days."');\" onmouseover=\"fadein('thread".$tid.$days."');\">  <span  >".
+          $newestposts_cols .= "<td width='".$mybb->settings['tp_thumbnail_width']."' height='".$mybb->settings['tp_thumbnail_height']."' border='1' valign='bottom'  style=\"background: url(".$image_url."); background-repeat: no-repeat\" onmouseout=\"fadeout('thread".$tid.$days."');\" onmouseover=\"fadein('thread".$tid.$days."');\">  <span  >".
           "<span id='thread".$tid.$days."' style='display:none;width: 100%;vertical-align:top;max-height: 30px;background:rgba(255,255,255,0.60); font-color: red;font-weight:bold;font-size: 0.8em;float: right;bottom:0;left:0; a, a:hover, a:active, a:visited { color: white; }'>"
           ."<img src=\"".$mybb->settings['bburl']."/images/topposts/Chat-icon.png\">".$replies." <img src=\"".$mybb->settings['bburl']."/images/topposts/eye.png\"/>".$views.($g33kthanks ? " "." <img src=\"".$mybb->settings['bburl']."/images/topposts/Heart-icon.png\"/>".$tyl_tnumtyls : "")." <img src=\"".$mybb->settings['bburl']."/images/topposts/star.gif\"/>".$ratings."</span>".
              "<span onmouseover=\"document.getElementById('thread".$tid."').style.display='block'\" style='display:block;width: 100%;vertical-align:middle;min-height: 30px;background:rgba(0,0,0,0.60); font-color: red;font-weight:bold;font-size: 0.8em;float: right;bottom:0;left:0; a, a:hover, a:active, a:visited { color: white; }'>".
@@ -731,6 +730,10 @@ function tp_GetNewestPosts($NumOfRows, $days, $title)
 
   eval("\$newestposts = \"".$templates->get("topposts_newestposts")."\";");
 
+  //TODO: if no updates for the period to show an empty cell (the commented code below doesn't work)
+  //   if ($loop_counter==0) {
+  //   	$newestposts="<tr><td width='".$mybb->settings['tp_thumbnail_width']."' height='".$mybb->settings['tp_thumbnail_height']."</td></tr>";
+  //   }
   return $newestposts;
 }
 
@@ -872,61 +875,6 @@ function tp_SubjectLength($subject, $length="", $half=false)
   return $subject;
 }
 
-function tp_GetTY($format='m-d', $stamp='', $offset='', $ty=1)
-{
-  global $mybb, $lang, $mybbadmin, $plugins;
-
-  if (!$offset && $offset != '0')
-  {
-    if ($mybb->user['uid'] != 0 && array_key_exists('timezone', $mybb->user))
-    {
-      $offset = $mybb->user['timezone'];
-      $dstcorrection = $mybb->user['dst'];
-    }
-    else
-    {
-      $offset = $mybb->settings['timezoneoffset'];
-      $dstcorrection = $mybb->settings['dstcorrection'];
-    }
-
-    if ($dstcorrection == 1)
-    {
-      ++$offset;
-      if (my_substr($offset, 0, 1) != '-')
-      {
-        $offset = '+'.$offset;
-      }
-    }
-  }
-
-  if ($offset == '-')
-  {
-    $offset = 0;
-  }
-
-  $date = gmdate($format, $stamp + ($offset * 3600));
-
-  if ($format && $ty)
-  {
-    $stamp = TIME_NOW;
-
-    $todaysdate = gmdate($format, $stamp + ($offset * 3600));
-    $yesterdaysdate = gmdate($format, ($stamp - 86400) + ($offset * 3600));
-
-    if ($todaysdate == $date)
-    {
-      $date = $lang->today;
-      return $date;
-    }
-    else if ($yesterdaysdate == $date)
-    {
-      $date = $lang->yesterday;
-      return $date;
-    }
-  }
-  return false;
-}
-
 /*
  * Returns the thread URL image based on the thread ID
  */
@@ -965,10 +913,12 @@ function tp_GetThreadImageUrl($tid){
   }
 }
 
-
+/*
+ * This function uses PhpThumb ( http://phpthumb.sourceforge.net/ ) library to resize and crop the images
+ */
 function tp_createThumb($source_url,$target_file, $thumb_file_name){
 	
-   global $mybb;
+  global $mybb;
 	
   require_once MYBB_ROOT.'inc/plugins/topposts/phpthumb.class.php';
   require_once MYBB_ROOT.'inc/plugins/topposts/phpThumb.config.php';
@@ -993,16 +943,10 @@ function tp_createThumb($source_url,$target_file, $thumb_file_name){
   // object mode does NOT pull any settings from phpThumb.config.php
 
   // set parameters (see URL Parameters in phpthumb.readme.txt)
-  $thumbnail_width = 100;
-  $phpThumb->setParameter('w', $thumbnail_width);
   $phpThumb->setParameter('nohotlink_enabled', 'false');
   $phpThumb->setParameter('config_output_format', 'jpeg');
   $phpThumb->setParameter('zc', "C");
   $phpThumb->setParameter('config_allow_src_above_docroot', true);
-  
-
-  
-  
   $phpThumb->setParameter('w', $mybb->settings['tp_thumbnail_width']);
   $phpThumb->setParameter('h', $mybb->settings['tp_thumbnail_height']);
   $phpThumb->setParameter('config_cache_directory','./topposts/temp/');
