@@ -87,7 +87,7 @@ function topposts_activate()
   find_replace_templatesets('index', '#{\$forums}(\r?)\n#', "{\$forums}\n{\$tp_footer_index}\n");
   find_replace_templatesets('portal', '#{\$header}(\r?)\n#', "{\$header}\n{\$tp_header_portal}\n");
   find_replace_templatesets('portal', '#{\$footer}(\r?)\n#', "{\$tp_footer_portal}\n{\$footer}\n");
-  $db->update_query('tasks', array('enabled' => 1), 'file = \'topposts\'');
+  $db->update_query('tasks', array('enabled' => 0), 'file = \'topposts\'');
   tp_UpdateContent();
 }
 
