@@ -55,7 +55,7 @@ function topposts_info()
     'website'   =>  'http://community.mybb.com/thread-139455.html',
     'author'    =>  'Blog Anti-NOM',
     'authorsite'  =>  'mailto:blogantinom@gmail.com',
-    'version'   =>  '1.0',
+    'version'   =>  '1.0.2',
     'guid'      =>  '93cbf2d9f08ea161a3697ddb3b2225c2',
     'compatibility' =>  '14*,16*'
     );
@@ -70,10 +70,8 @@ function topposts_is_installed()
 
   if (mysql_fetch_array($query, MYSQL_NUM))
   {
-    //echo("está instalado");
     return true;
   } else {
-    //echo("não está instalado");
     return false;
   }
 
@@ -141,7 +139,7 @@ function topposts_install()
     <tr><td colspan=\"{\$num_columns}\">
       <table border=\"0\" cellspacing=\"0\" cellpadding=\"{\$theme[tablespace]}\" width=\"100%\">
       <tr class=\"thead\">
-      <td><strong>{\$lang->topposts_topposts}</strong></td>
+      <td><strong>{\$lang->topposts_topposts}</strong> {\$topposts_updatetime}</td>
       <td style=\"text-align:{\$tp_ralign};\"></td>
       </tr>
       </table>
@@ -313,26 +311,6 @@ function topposts_install()
     "disporder"   => '42',
     "gid"     => intval($gid),
   );  
-  
-  $ps[]= array(
-    "name"      => "tp_date_format",
-    "title"     => "Date and Time format",
-    "description" => "The format of Date and Time which would be used in stats. [<a href=\"http://php.net/manual/en/function.date.php\" target=\"_blank\">More Information</a>]",
-    "optionscode" => "text",
-    "value"     => 'm-d, H:i',
-    "disporder"   => '42',
-    "gid"     => intval($gid),
-  );
-
-  $ps[]= array(
-    "name"      => "tp_date_format_ty",
-    "title"     => "Replace format",
-    "description" => "A part of Date and Time format that must be replaced with \"Yesterday\" or \"Today\".",
-    "optionscode" => "text",
-    "value"     => 'm-d',
-    "disporder"   => '43',
-    "gid"     => intval($gid),
-  );
 
   $ps[]= array(
     "name"      => "tp_newest_posts_cells",
@@ -364,7 +342,16 @@ function topposts_install()
     "gid"     => intval($gid),
   );
 
-
+  $ps[]= array(
+  		"name"      => "tp_show_update_time",
+  		"title"     => "Show updated time",
+  		"description" => "If set it shows the last time the table was updated",
+  		"optionscode" => "yesno",
+  		"value"     => '1',
+  		"disporder"   => '77',
+  		"gid"     => intval($gid),
+  );
+  
   foreach ($ps as $p)
   {
     $db->insert_query("settings", $p);
@@ -416,7 +403,7 @@ function topposts_uninstall()
   $db->query("DELETE FROM ".TABLE_PREFIX."templates WHERE title='topposts'");
   $db->query("DELETE FROM ".TABLE_PREFIX."templates WHERE title LIKE 'topposts_%'");
 
-  $db->delete_query("settings","name IN ('tp_active','tp_ignoreforums','tp_index','tp_portal','tp_position','tp_format_name','tp_subject_length','tp_num_rows','tp_date_format','tp_date_format_ty','tp_newest_posts_cells','tp_hidefrombots','tp_global_tag','tp_thumbnail_height','tp_thumbnail_width')");
+  $db->delete_query("settings","name IN ('tp_active','tp_ignoreforums','tp_index','tp_portal','tp_position','tp_format_name','tp_subject_length','tp_num_rows','tp_newest_posts_cells','tp_hidefrombots','tp_global_tag','tp_thumbnail_height','tp_thumbnail_width','tp_show_update_time')");
   $db->delete_query("settinggroups","name='topposts'");
 
   
@@ -587,7 +574,7 @@ function tp_GetNewestPosts($NumOfRows, $days, $title)
 
   $newest_posts_cells_arr = escaped_explode(",", htmlspecialchars_uni($mybb->settings['tp_newest_posts_cells']),20);
 
-  // Cabeçalho tabela
+  // Table Header
   foreach($newest_posts_cells_arr as $newest_posts_cell)
   {
     ++$colspan;
@@ -653,8 +640,6 @@ function tp_GetNewestPosts($NumOfRows, $days, $title)
       $tyl_tnumtyls=$newest_threads['tyl_tnumtyls'];
     }
     $newestposts_cols = "";
-
-    $dateformat = $mybb->settings['tp_date_format'];
 
     if ($active_cells['Date'])
     {
@@ -748,12 +733,14 @@ function tp_MakeTable()
 }
 
 /*
- * Updates the topposts table
+ * Up s the topposts table
  */
 function tp_UpdateContent()
 {
   global $cache, $mybb, $theme, $lang, $templates, $parser, $lightbulb, $unread_forums, $tp_align;
 
+  //$cache->update('topposts_table', '');
+  
   $numofrows = $mybb->settings['tp_num_rows'];
 
   $lang->load("topposts");
@@ -779,6 +766,10 @@ function tp_UpdateContent()
   $col5= tp_GetNewestPosts($mybb->settings['tp_num_rows'],3600,$lang->topposts_ever);
 
   $topposts_content = $col1.$col2.$col3.$col4.$col5;
+  
+  if ($mybb->settings['tp_show_update_time']) {
+  	$topposts_updatetime='<small>('.$lang->topposts_lastupdated.' '.my_date($mybb->settings['dateformat'],"","",0).' '.my_date($mybb->settings['timeformat']).')</small>';
+  }
 
   eval("\$topposts = \"".$templates->get("topposts")."\";");
 
@@ -994,6 +985,12 @@ function downloadFile ($url, $path) {
 function updateTopposts(){
   global $cache;
 
+  //check if the db was updated to 1.0.2, if not, updates it.
+
+  if(!$mybb->settings['tp_show_update_time'])
+  {
+  	update_to_102();
+  }
   tp_UpdateContent();
   return true;
 }
@@ -1010,5 +1007,71 @@ function thankyouplugin_is_installed()
   {
     return true;
   }
+}
+
+/*
+ * Returns the Group ID (gid) of the plugin
+ */
+function topposts_settings_gid()
+{
+	global $db;
+
+	$query = $db->simple_select("settinggroups", "gid", "name = 'topposts'", array("limit" => 1));
+	$gid = $db->fetch_field($query, "gid");
+
+	return intval($gid);
+}
+
+function update_to_102(){
+	
+	$gid=topposts_settings_gid();
+	
+	if(!$mybb->settings['tp_thumbnail_height'])
+	{
+		$ps[]= array(
+				"name"      => "tp_thumbnail_height",
+				"title"     => "Height of thumbnail",
+				"description" => "The height of the thumbnail generated)",
+				"optionscode" => "text",
+				"value"     => '111',
+				"disporder"   => '42',
+				"gid"     => $gid,
+		);
+		
+	}
+	
+	if(!$mybb->settings['tp_thumbnail_width'])
+	{
+		$ps[]= array(
+				"name"      => "tp_thumbnail_width",
+				"title"     => "Width of thumbnail",
+				"description" => "The width of the thumbnail generated)",
+				"optionscode" => "text",
+				"value"     => '160',
+				"disporder"   => '42',
+				"gid"     => $gid,
+		);
+	}
+	
+	if(!$mybb->settings['tp_show_update_time'])
+	{
+		$ps[]= array(
+				"name"      => "tp_show_update_time",
+				"title"     => "Show updated time",
+				"description" => "If set it shows the last time the table was updated",
+				"optionscode" => "yesno",
+				"value"     => '0',
+				"disporder"   => '77',
+				"gid"     => $gid,
+		);
+	}
+
+	foreach ($ps as $p)
+	{
+		$db->insert_query("settings", $p);
+	}
+	
+	rebuild_settings();
+	
 }
 ?>
