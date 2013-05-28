@@ -653,7 +653,7 @@ function tp_GetNewestPosts($NumOfRows, $days, $title)
       $parsed_subject = $parser->parse_badwords($newest_threads['subject']);
       $subject = htmlspecialchars_uni(tp_SubjectLength($parsed_subject));
       $subject_long = htmlspecialchars_uni($parsed_subject);
-      $threadlink = get_thread_link($tid,NULL,"lastpost");
+      $threadlink = get_thread_link($tid,NULL,"");
       eval("\$newestposts_specialchar = \"".$templates->get("topposts_newestposts_specialchar")."\";");
     }
 
